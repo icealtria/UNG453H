@@ -1,0 +1,21 @@
+[project]
+name = "UNG453H"
+version = "0.1.0"
+description = "UNG453H Get Password"
+authors = [
+    {name = "icealtria", email = "icealtria@gmail.com"},
+]
+dependencies = ["telnetlib3>=2.0.4", "requests>=2.32.3"]
+requires-python = ">=3.13"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+[project.scripts]
+cmcc-getpwd = "cmcc_modem.main:cli"
