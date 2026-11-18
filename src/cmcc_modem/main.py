@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 
 import requests
@@ -273,15 +274,25 @@ async def main() -> int:
         if value:
             print(f"{label}: {value}")
 
-    try:
-        input("\n按回车键退出...")
-    except (EOFError, KeyboardInterrupt):
-        pass
     return 0
 
 
 def cli() -> None:
-    sys.exit(asyncio.run(main()))
+    code = 1
+    try:
+        code = asyncio.run(main())
+    except SystemExit as e:  # argparse 的 --help / 参数错误
+        code = e.code if isinstance(e.code, int) else 1
+    except KeyboardInterrupt:
+        print("\n已取消。", file=sys.stderr)
+    except BaseException:
+        traceback.print_exc()
+    finally:
+        try:
+            input("\n按回车键退出...")
+        except (EOFError, KeyboardInterrupt):
+            pass
+    sys.exit(code)
 
 
 if __name__ == "__main__":
