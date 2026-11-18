@@ -20,12 +20,13 @@ PASSWORD_PROMPTS = (b"Password:", b"password:")
 SHELL_PROMPTS = (b"$ ", b"# ", b"> ")
 LOGIN_FAILURES = ("login incorrect", "登录失败")
 
-# 每个字段独立匹配，不要求它们在 XML 里相邻。
-FIELD_PATTERNS = (
-    ("SuperUser", re.compile(r'aucTeleAccountName"\s+Value="([^"]+)"')),
-    ("SuperPass", re.compile(r'aucTeleAccountPassword"\s+Value="([^"]+)"')),
-    ("PPPoEUser", re.compile(r'aucUsername"\s+Value="([^"]+@[^"]+)"')),
-    ("PPPoEPass", re.compile(r'aucPassword"\s+Value="([^"]+)"')),
+SUPER_USER_RE = re.compile(r'aucTeleAccountName"\s+Value="([^"]+)"')
+SUPER_PASS_RE = re.compile(r'aucTeleAccountPassword"\s+Value="([^"]+)"')
+PPPOE_USER_RE = re.compile(r'aucUsername"\s+Value="([^"]+@[^"]+)"')
+
+PPPOE_RE = re.compile(
+    r'aucUsername"\s+Value="([^"]+@[^"]+)"[^\n]*\n[^\n]*'
+    r'aucPassword"\s+Value="([^"]+)"'
 )
 
 
@@ -192,6 +193,20 @@ class TelnetSession:
             self.buffer.extend(chunk)
 
 
+def parse_credentials(output: str) -> Credentials:
+    creds = Credentials()
+    if match := SUPER_USER_RE.search(output):
+        creds.SuperUser = match.group(1)
+    if match := SUPER_PASS_RE.search(output):
+        creds.SuperPass = match.group(1)
+    if match := PPPOE_RE.search(output):
+        creds.PPPoEUser, creds.PPPoEPass = match.group(1), match.group(2)
+    elif match := PPPOE_USER_RE.search(output):
+        # 只找到用户名时保留用户名，绝不猜一个可能属于别人的密码。
+        creds.PPPoEUser = match.group(1)
+    return creds
+
+
 async def fetch_credentials(host: str, port: int, password: str) -> Credentials:
     print(f"正在连接 {host}:{port}...")
     try:
@@ -221,11 +236,7 @@ async def fetch_credentials(host: str, port: int, password: str) -> Credentials:
             (("\n" + marker).encode(),), 15, f"读取 {CONFIG_PATH}"
         )
 
-        creds = Credentials()
-        for name, pattern in FIELD_PATTERNS:
-            match = pattern.search(output)
-            if match:
-                setattr(creds, name, match.group(1))
+        creds = parse_credentials(output)
         if not creds.found():
             raise GetpwdError(
                 "未在配置文件中找到账号密码字段。\n"
