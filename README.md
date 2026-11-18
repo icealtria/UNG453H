@@ -4,14 +4,13 @@
 
 ## 安装
 ```bash
-pdm install
+uv install
 ```
-windows 可以下载 `getpwd.exe`
 
 ## 使用方法
 
 1. 确保你的电脑已连接到光猫的 WiFi 或网线
-2. 运行 `pdm run cmcc-getpwd`
+2. 运行 `uv run cmcc-getpwd`
 3. 根据提示输入光猫的密码
 4. 程序会输出超级管理员账号密码和 PPPoE 账号密码
 
